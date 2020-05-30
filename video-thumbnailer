@@ -1,0 +1,104 @@
+#!/bin/bash
+
+readonly THUMBNAIL_WIDTH=1920
+readonly FONT_FILE="$(dirname $0)/fonts/ipagp00303/ipagp.ttf"
+
+readonly FFMPEG_LOGLEVEL=quiet
+readonly FONT_DL_URL=https://ipafont.ipa.go.jp/IPAfont/ipagp00303.zip
+
+set -e
+
+# download font if needed
+if [ ! -f $FONT_FILE ]; then
+  echo downloading font...
+  curl -Lo fonts.zip $FONT_DL_URL
+  unzip fonts.zip -d fonts
+  rm fonts.zip
+  echo font downloaded.
+fi
+
+usage() {
+  cat <<EOF
+  Usage:
+  $0 video_file cols rows
+
+  Description:
+  Create video thumbnail.
+EOF
+  exit 0
+}
+
+if [ $# -lt 3 ]; then
+  usage
+fi
+
+readonly SRC_FILE=$1
+readonly SRC_FILENAME=$(basename "$1")
+readonly COLS=$2
+readonly ROWS=$3
+readonly CELLS=$(($2 * $3))
+
+# make temp directory
+readonly TEMP_DIR=$(mktemp -d)
+echo work directory: $TEMP_DIR
+
+readonly PROBED_FILE=$TEMP_DIR/probe.json
+readonly LIST_FILE=$TEMP_DIR/list.txt
+readonly HEADER_IMAGE_FILE=$TEMP_DIR/header.png
+readonly THUMBS_IMAGE_FILE=$TEMP_DIR/thumbs.png
+
+# get video information
+echo probing video...
+ffprobe -loglevel $FFMPEG_LOGLEVEL -i "$SRC_FILE" -show_format -show_streams -print_format json > $PROBED_FILE
+readonly DURATION=$(cat $PROBED_FILE | jq .format.duration | tr -d '"')
+readonly FILESIZE=$(cat $PROBED_FILE | jq .format.size | tr -d '"')
+readonly RESOLUTION_WIDTH=$(cat $PROBED_FILE | jq '.streams[] | select(.codec_type == "video") | .width')
+readonly RESOLUTION_HEIGHT=$(cat $PROBED_FILE | jq '.streams[] | select(.codec_type == "video") | .height')
+readonly R_FRAME_RATE=$(cat $PROBED_FILE | jq '.streams[] | select(.codec_type == "video") | .r_frame_rate' | tr -d '"')
+readonly VIDEO_CODEC=$(cat $PROBED_FILE | jq '.streams[] | select(.codec_type == "video") | .codec_long_name' | tr -d '"')
+readonly AUDIO_CODEC=$(cat $PROBED_FILE | jq '.streams[] | select(.codec_type == "audio") | .codec_long_name' | tr -d '"')
+readonly VIDEO_BITRATE=$(cat $PROBED_FILE | jq '.streams[] | select(.codec_type == "video") | .bit_rate' | tr -d '"')
+readonly AUDIO_BITRATE=$(cat $PROBED_FILE | jq '.streams[] | select(.codec_type == "audio") | .bit_rate' | tr -d '"')
+echo video probed.
+
+# create thumbnails
+echo creating thumbnails...
+readonly RATE=$(bc <<<"scale=6; 1 / $DURATION * ($CELLS - 1)")
+readonly SCALE_W=$(bc <<<"scale=6; $THUMBNAIL_WIDTH / $COLS")
+ffmpeg -loglevel $FFMPEG_LOGLEVEL -i "$SRC_FILE" -threads 8 -r $RATE -vf scale=$SCALE_W:-1 -vcodec png $TEMP_DIR/capture_%04d.png
+echo thumbnails created.
+
+# create thumbnail file list
+for i in $(seq 1 $CELLS); do
+  printf "$TEMP_DIR/capture_%04d.png\n" $i >> $LIST_FILE
+done
+
+# create header
+echo creating header...
+readonly DURATION_HOUR=$(bc <<<"scale=0; $DURATION / 3600")
+readonly DURATION_MIN=$(bc <<<"scale=0; ($DURATION - $DURATION_HOUR * 3600) / 60")
+readonly DURATION_SEC=$(bc <<<"scale=0; ($DURATION - $DURATION_HOUR * 3600 - $DURATION_MIN * 60) / 1")
+readonly FILESIZE_GB=$(bc <<<"scale=2; $FILESIZE / 1000000000")
+readonly FILESIZE_MB=$(bc <<<"scale=2; $FILESIZE / 1000000")
+readonly FPS=$(bc <<<"scale=3; $R_FRAME_RATE")
+readonly VIDEO_BITRATE_KB=$(bc <<<"scale=2; $VIDEO_BITRATE / 1000")
+readonly AUDIO_BITRATE_KB=$(bc <<<"scale=2; $AUDIO_BITRATE / 1000")
+readonly HEADER_STR=`cat<<EOF
+File Name: $SRC_FILENAME
+File Size: $(printf "%0.2f GB / %0.2f MB" $FILESIZE_GB $FILESIZE_MB)
+Resolution: ${RESOLUTION_WIDTH}x${RESOLUTION_HEIGHT} / $FPS ($R_FRAME_RATE) FPS
+Duration: $(printf "%02d:%02d:%02d" $DURATION_HOUR $DURATION_MIN $DURATION_SEC)
+Video: $VIDEO_CODEC / $VIDEO_BITRATE_KB kbps
+Audio: $AUDIO_CODEC / $AUDIO_BITRATE_KB kbps
+EOF
+`
+echo -n "$HEADER_STR" | convert -background black -fill white -font "$FONT_FILE" -pointsize 14 -size $THUMBNAIL_WIDTH caption:@- $HEADER_IMAGE_FILE
+echo header created.
+
+# concat them
+echo concat thumbnails and header...
+montage @$LIST_FILE -tile ${COLS}x${ROWS} -geometry ${SCALE_W}x-1 -border 1 -bordercolor white -background black $THUMBS_IMAGE_FILE
+convert $HEADER_IMAGE_FILE $THUMBS_IMAGE_FILE -append "${SRC_FILE%.*}.jpg"
+echo completed: "${SRC_FILE%.*}.jpg"
+
+rm -rf $TEMP_DIR
