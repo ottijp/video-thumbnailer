@@ -39,6 +39,9 @@ $ ./video-thumbnailer 4 5 FromtheG1954.mp4
 ファイルリストから一括で処理したい場合は，`@`をつけてファイルリストを渡します．
 
 ```bash
+$ cat list.txt
+movie 1.mp4
+movie 2.mp4
 $ ./video-thumbnailer 4 5 @list.txt
 ```
 
