@@ -99,7 +99,7 @@ echo header created.
 # concat them
 echo concat thumbnails and header...
 montage @$LIST_FILE -tile ${COLS}x${ROWS} -geometry ${SCALE_W}x-1 -border 1 -bordercolor white -background black $THUMBS_IMAGE_FILE
-convert $HEADER_IMAGE_FILE $THUMBS_IMAGE_FILE -append "${SRC_FILE%.*}.jpg"
+convert $HEADER_IMAGE_FILE $THUMBS_IMAGE_FILE -append -quality 85 "${SRC_FILE%.*}.jpg"
 echo completed: "${SRC_FILE%.*}.jpg"
 
 rm -rf $TEMP_DIR
