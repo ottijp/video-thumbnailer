@@ -5,6 +5,7 @@ readonly FONT_FILE="$(dirname $0)/fonts/ipagp00303/ipagp.ttf"
 
 readonly FFMPEG_LOGLEVEL=quiet
 readonly FONT_DL_URL=https://ipafont.ipa.go.jp/IPAfont/ipagp00303.zip
+readonly RATE_MAX=$(bc<<<"scale=6; 1 / 5") # minimum interval = 5sec
 
 set -e
 
@@ -63,7 +64,7 @@ echo video probed.
 
 # create thumbnails
 echo creating thumbnails...
-readonly RATE=$(bc <<<"scale=6; 1 / $DURATION * ($CELLS - 1)")
+readonly RATE=$(bc <<<"scale=6; if ((1 / $DURATION * $CELLS) > $RATE_MAX) $RATE_MAX else (1 / $DURATION * $CELLS)")
 readonly SCALE_W=$(bc <<<"scale=0; $THUMBNAIL_WIDTH / $COLS")
 ffmpeg -loglevel $FFMPEG_LOGLEVEL -i "$SRC_FILE" -an -vf "fps=fps=$RATE:round=down, scale=$SCALE_W:-1, drawtext=fontfile='$FONT_FILE': text='%{pts\:hms}': x=10: y=h-th-10: fontcolor=white: box=1: boxcolor=0x00000080: boxborderw=5: fontsize=12" -vsync 0 $TEMP_DIR/capture_%06d.png
 
