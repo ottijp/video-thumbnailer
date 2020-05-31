@@ -65,14 +65,12 @@ echo video probed.
 echo creating thumbnails...
 readonly RATE=$(bc <<<"scale=6; 1 / $DURATION * ($CELLS - 1)")
 readonly SCALE_W=$(bc <<<"scale=0; $THUMBNAIL_WIDTH / $COLS")
-ffmpeg -loglevel $FFMPEG_LOGLEVEL -i "$SRC_FILE" -threads 8 -r $RATE -vf "scale=$SCALE_W:-1, drawtext=fontfile='$FONT_FILE': text='%{pts\:gmtime\:0\:%T}': x=10: y=h-th-10: fontcolor=white: box=1: boxcolor=0x00000080: boxborderw=5: fontsize=12" -vcodec png $TEMP_DIR/capture_%04d.png
+ffmpeg -loglevel $FFMPEG_LOGLEVEL -i "$SRC_FILE" -an -vf "fps=fps=$RATE:round=down, scale=$SCALE_W:-1, drawtext=fontfile='$FONT_FILE': text='%{pts\:hms}': x=10: y=h-th-10: fontcolor=white: box=1: boxcolor=0x00000080: boxborderw=5: fontsize=12" -vsync 0 $TEMP_DIR/capture_%06d.png
 
 echo thumbnails created.
 
 # create thumbnail file list
-for i in $(seq 1 $CELLS); do
-  printf "$TEMP_DIR/capture_%04d.png\n" $i >> $LIST_FILE
-done
+find $TEMP_DIR -name "capture_*.png" | sort | head -$CELLS > $LIST_FILE
 
 # create header
 echo creating header...
@@ -98,7 +96,7 @@ echo header created.
 
 # concat them
 echo concat thumbnails and header...
-montage @$LIST_FILE -tile ${COLS}x${ROWS} -geometry ${SCALE_W}x-1 -border 1 -bordercolor white -background black $THUMBS_IMAGE_FILE
+montage @$LIST_FILE -tile ${COLS}x -geometry ${SCALE_W}x-1 -border 1 -bordercolor white -background black $THUMBS_IMAGE_FILE
 convert $HEADER_IMAGE_FILE $THUMBS_IMAGE_FILE -append -quality 85 "${SRC_FILE%.*}.jpg"
 echo completed: "${SRC_FILE%.*}.jpg"
 
