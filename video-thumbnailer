@@ -70,7 +70,7 @@ generate() {
   echo creating thumbnails...
   local readonly RATE=$(bc <<<"scale=6; if ((1 / $DURATION * $CELLS) > $RATE_MAX) $RATE_MAX else (1 / $DURATION * $CELLS)")
   local readonly SCALE_W=$(bc <<<"scale=0; $THUMBNAIL_WIDTH / $COLS")
-  ffmpeg -loglevel $FFMPEG_LOGLEVEL -nostdin -i "$SRC_FILE" -an -vf "fps=fps=$RATE:round=down, scale=$SCALE_W:-1, drawtext=fontfile='$FONT_FILE': text='%{pts\:hms}': x=10: y=h-th-10: fontcolor=white: box=1: boxcolor=0x00000080: boxborderw=5: fontsize=12" -vsync 0 $TEMP_DIR/capture_%06d.png
+  ffmpeg -loglevel $FFMPEG_LOGLEVEL -nostdin -i "$SRC_FILE" -an -vf "fps=fps=$RATE:round=down, scale=$SCALE_W:-1, drawtext=fontfile='$FONT_FILE': text='%{pts\:gmtime\:0\:%T}': x=10: y=h-th-10: fontcolor=white: box=1: boxcolor=0x00000080: boxborderw=5: fontsize=12" -vsync 0 $TEMP_DIR/capture_%06d.png
 
   echo thumbnails created.
 
