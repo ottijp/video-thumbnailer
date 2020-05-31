@@ -31,7 +31,7 @@ $ brew install ffmpeg
 
 ```bash
 $ curl -Lo FromtheG1954.mp4 https://archive.org/download/FromtheG1954/FromtheG1954.mp4
-$ ./video-thumbnailer FromtheG1954.mp4 4 5
+$ ./video-thumbnailer 4 5 FromtheG1954.mp4
 ```
 
 処理が完了すると，冒頭のようなサムネイル画像 FromtheG1954.jpg ができあがります．

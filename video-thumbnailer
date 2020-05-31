@@ -20,7 +20,7 @@ fi
 usage() {
   cat <<EOF
   Usage:
-  $0 video_file cols rows
+  $0 cols rows video_file
 
   Description:
   Create video thumbnail.
@@ -32,11 +32,11 @@ if [ $# -lt 3 ]; then
   usage
 fi
 
-readonly SRC_FILE=$1
-readonly SRC_FILENAME=$(basename "$1")
-readonly COLS=$2
-readonly ROWS=$3
-readonly CELLS=$(($2 * $3))
+readonly COLS=$1
+readonly ROWS=$2
+readonly SRC_FILE=$3
+readonly SRC_FILENAME=$(basename "$SRC_FILE")
+readonly CELLS=$(($COLS * $ROWS))
 
 # make temp directory
 readonly TEMP_DIR=$(mktemp -d)
