@@ -36,6 +36,12 @@ $ ./video-thumbnailer 4 5 FromtheG1954.mp4
 
 処理が完了すると，冒頭のようなサムネイル画像 FromtheG1954.jpg ができあがります．
 
+ファイルリストから一括で処理したい場合は，`@`をつけてファイルリストを渡します．
+
+```bash
+$ ./video-thumbnailer 4 5 @list.txt
+```
+
 ## カスタマイズ
 
 ### サムネイル画像サイズ
