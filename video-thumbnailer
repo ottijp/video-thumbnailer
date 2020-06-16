@@ -88,7 +88,7 @@ generate() {
   local readonly VIDEO_BITRATE_KB=$(bc <<<"scale=2; $VIDEO_BITRATE / 1000")
   local readonly AUDIO_BITRATE_KB=$(bc <<<"scale=2; $AUDIO_BITRATE / 1000")
   local readonly HEADER_STR=`cat<<EOF
-File Name: $SRC_FILENAME
+File Name: $(nkf -w --ic=UTF-8-MAC <<<$SRC_FILENAME)
 File Size: $(printf "%0.2f GB / %0.2f MB" $FILESIZE_GB $FILESIZE_MB)
 Resolution: ${RESOLUTION_WIDTH}x${RESOLUTION_HEIGHT} / $FPS ($R_FRAME_RATE) FPS
 Duration: $(printf "%02d:%02d:%02d" $DURATION_HOUR $DURATION_MIN $DURATION_SEC)
